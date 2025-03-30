@@ -26,9 +26,6 @@ export default function Home() {
 
   const date = new Date().getFullYear();
 
-  if (session) {
-    return router.replace('/dashboard');
-  }
   return (
     <>
       <main className="flex flex-col md:flex-row items-center justify-center px-4 md:px-24 py-12 bg-gray-800 text-white">
@@ -42,14 +39,31 @@ export default function Home() {
               Get your health assistance 24/7 everywhere With MediAna
             </p>
           </div>
-          <a href="/chat">
-            <button className="relative inline-flex h-12 overflow-hidden rounded-full p-[1px] focus:outline-none mt-10">
-              <span className="absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#E2CBFF_0%,#393BB2_50%,#E2CBFF_100%)]" />
-              <span className="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-full bg-slate-950 px-3 py-1 text-sm font-medium text-white backdrop-blur-3xl">
-                  Start Chat <span><Send className="ml-5" size={20} /></span>
-              </span>
-            </button>
-          </a>
+          {
+            session ? (
+              <>
+                <a href="/chat">
+                  <button className="relative inline-flex h-12 overflow-hidden rounded-full p-[1px] focus:outline-none mt-10">
+                    <span className="absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#E2CBFF_0%,#393BB2_50%,#E2CBFF_100%)]" />
+                    <span className="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-full bg-slate-950 px-3 py-1 text-sm font-medium text-white backdrop-blur-3xl">
+                        Start Chat <span><Send className="ml-5" size={20} /></span>
+                    </span>
+                  </button>
+                </a>
+              </>
+            ) : (
+              <>
+                <a href="/sign-in">
+                  <button className="relative inline-flex h-12 overflow-hidden rounded-full p-[1px] focus:outline-none mt-10">
+                    <span className="absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#E2CBFF_0%,#393BB2_50%,#E2CBFF_100%)]" />
+                    <span className="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-full bg-slate-950 px-3 py-1 text-sm font-medium text-white backdrop-blur-3xl">
+                        Start Chat <span><Send className="ml-5" size={20} /></span>
+                    </span>
+                  </button>
+                </a>
+              </>
+            )
+          }
         </section>
         <section className="justify-center">
           <Image src={`${docImage.src}`} alt={""} width={800} height={700}/>
