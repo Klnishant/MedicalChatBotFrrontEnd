@@ -63,7 +63,7 @@ export default function signInForm(){
 
     return (
         <div className="flex justify-center items-center min-h-screen bg-gray-800">
-            <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-md">
+            <div className="w-full max-w-md p-8 space-y-8 rounded-lg bg-gray-800 backdrop-blur-4xl backdrop-opacity-1 border border-gray-700 shadow-gray-900/10 shadow-xl text-white">
                 <div className="text-center">
                     <h1 className="text-4xl mb-6 font-extrabold tracking-tight lg:text-5xl">
                         Welcome Back to <ColourfulText text="MediAna" /> AI
@@ -81,7 +81,7 @@ export default function signInForm(){
                               <FormControl>
                                 <Input
                                  {...field}
-                                 className="border border-gray-300"
+                                 className="border border-gray-300 bg-transparent"
                                   />
                               </FormControl>
                               <FormMessage />
@@ -98,7 +98,7 @@ export default function signInForm(){
                                 <Input
                                  {...field}
                                  type="password"
-                                 className="border border-gray-300"
+                                 className="border border-gray-300 bg-transparent"
                                   />
                               </FormControl>
                               <FormMessage />

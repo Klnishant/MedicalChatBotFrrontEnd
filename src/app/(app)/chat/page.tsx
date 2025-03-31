@@ -27,15 +27,23 @@ import { set } from "mongoose";
 import profile from "@/media/image/profile.png";
 import botImage from "@/media/image/chatbot.png";
 import { m } from "motion/react";
-
+import { useSession } from "next-auth/react";
+import { User } from "next-auth";
+import { useRouter } from "next/navigation";
+import HistoryModel from "@/model/history";
+import dbconnect from "@/lib/dbConnect";
 export default function ChatbotPage() {
+  const { data: session } = useSession();
+  const user: User = session?.user as User;
+  const router = useRouter();
+
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isloading, setIsLoading] = useState(false);
   const [chat, setChat] = useState([
     {
       sender: "bot",
-      text: "Hello I am a MediAna AI health assistant. How can I help you?",
+      text: `hello ${user?.username}! I am MediAna AI health assistant. How can I help you?`,
     },
   ]);
   const [required, setRequired] = useState(false);
@@ -43,9 +51,6 @@ export default function ChatbotPage() {
   const form = useForm<z.infer<typeof messageSchema>>({
     resolver: zodResolver(messageSchema),
   });
-
-  const params = useParams<{ username: string }>();
-  const username = params.username;
 
   const messageContent = form.watch("content");
   const handleMessageClick = (message: string) => {
@@ -71,12 +76,24 @@ export default function ChatbotPage() {
       const botMessage = { sender: "bot", text: response.data };
       setChat((prevChat) => [...prevChat, botMessage]);
       form.setValue("content", message);
+
+      const updateHistory = await axios.post("/api/save-history", {
+        question: data.content,
+        answer: response.data,
+      });
+      console.log(updateHistory);
     } catch (error) {
       const axiosError = error as AxiosError<apiResponse>;
     } finally {
       setIsSending(false);
     }
   };
+
+  useEffect(() => {
+    if (!user || !session) {
+      router.replace("/");
+    }
+  }, [user, session]);
 
   return (
     <>
