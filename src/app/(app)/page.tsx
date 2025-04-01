@@ -19,6 +19,7 @@ import docImage from "@/media/image/doc.png";
 import stethoscope from "@/media/image/stethoscope.png";
 import ColourfulText from "@/components/ui/colourful-text";
 import { Send } from "lucide-react";
+import { SidebarDemo } from "@/components/SideBar";
 
 export default function Home() {
   const {data: session} = useSession();

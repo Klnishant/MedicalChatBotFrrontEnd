@@ -2,7 +2,7 @@
 
 import { apiResponse } from "@/types/apiResponse";
 import axios, { AxiosError } from "axios";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 import { useForm } from "react-hook-form";
@@ -31,10 +31,17 @@ import { useSession } from "next-auth/react";
 import { User } from "next-auth";
 import { useRouter } from "next/navigation";
 import { SidebarDemo } from "@/components/SideBar";
- export function ChatbotPage() {
+import { FileUpload } from "@/components/ui/file-upload";
+import Inputs from "@/components/Inputs";
+import ChatForm from "@/components/Chat";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+export function ChatbotPage() {
   const { data: session } = useSession();
   const user: User = session?.user as User;
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
+  const [file, setFile] = useState<File | null>(null);
 
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -42,7 +49,7 @@ import { SidebarDemo } from "@/components/SideBar";
   const [chat, setChat] = useState([
     {
       sender: "bot",
-      text: `hello ${user?.username}! I am MediAna AI health assistant. How can I help you?`,
+      text: `hello ${user?.username}! I am MediAna AI Image analyser health assistant. How can I help you?`,
     },
   ]);
   const [required, setRequired] = useState(false);
@@ -52,23 +59,37 @@ import { SidebarDemo } from "@/components/SideBar";
   });
 
   const messageContent = form.watch("content");
-  const handleMessageClick = (message: string) => {
-    form.setValue("content", message);
-  };
 
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log(event?.target?.files[0]);
+    setFile(event.target.files?.[0]);
+      console.log(file);
+  };
+   
   const handleSubmitMessage = async (data: z.infer<typeof messageSchema>) => {
-    if (!data.content) {
-      setRequired(true);
-      return;
-    }
+    console.log(data);
+    console.log(messageContent);
+    const input = document.querySelector('input[type="file"]'); // Select the file input
+    console.log(input?.files[0]);
+
+    const file = input?.files[0]
+    
+    
+    const formData = new FormData();
+    formData.append("img", file);
+
+    console.log(formData);
+    
+
     setRequired(false);
     setIsSending(true);
-    const userMessage = { sender: "user", text: data.content };
-    setChat((prevChat) => [...prevChat, userMessage]);
-
+    const userMessage = { sender: "user", formData };
+    
     try {
-      const response = await axios.post("http://localhost:8000/get", {
-        msg: data.content,
+      const response = await axios.post("http://localhost:8000/diagnose", formData,{
+        headers: {
+            "Content-Type": "multipart/form-data",
+          },
       });
       setMessage("");
 
@@ -77,7 +98,7 @@ import { SidebarDemo } from "@/components/SideBar";
       form.setValue("content", message);
 
       const updateHistory = await axios.post("/api/save-history", {
-        question: data.content,
+        question: file + "analysis",
         answer: response.data,
       });
       console.log(updateHistory);
@@ -88,18 +109,18 @@ import { SidebarDemo } from "@/components/SideBar";
     }
   };
 
-  useEffect(() => {
-    if (!user || !session) {
-      router.replace("/");
-    }
-  }, [user, session]);
+  //   useEffect(() => {
+  //     if (!user || !session) {
+  //       router.replace("/");
+  //     }
+  //   }, [user, session]);
 
   return (
     <>
       <div className="flex flex-col no-scrollbar bg-gray-800 text-white justify-end  items-center w-full h-157.5">
-        <div className=" bg-gray-800 p-2 md:p-10 h-auto ">
-          <Card className=" p-4 mt-10 bg-gray-800 border-t border-gray-800 text-white mx-auto max-w-4xl w-full">
-            <CardContent className="space-y-4 overflow-y-auto max-h-88 no-scrollbar w-full">
+        <div className=" bg-gray-800 p-2 h-full ">
+          <Card className=" p-4 mt-2 bg-gray-800 border-t border-gray-800 text-white mx-auto max-w-4xl w-full max-h-120 h-full">
+            <CardContent className="space-y-4 overflow-y-auto max-h-118 p-2 no-scrollbar w-full">
               {chat.map((message, index) => (
                 <div key={index} className="space-y-2">
                   <div className="flex">
@@ -123,7 +144,7 @@ import { SidebarDemo } from "@/components/SideBar";
                           : "bg-transparent"
                       }`}
                     >
-                      {message.text}
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.text}</ReactMarkdown>
                     </span>
                     <span className="ml-2 font-bold">
                       {message.sender === "bot" ? (
@@ -143,9 +164,11 @@ import { SidebarDemo } from "@/components/SideBar";
               ))}
             </CardContent>
           </Card>
-          <div className="p-4 border-t border-gray-800 flex gap-2 mx-auto max-w-4xl w-full">
+          <div className=" border-t border-gray-800 flex max-w-4xl w-full p-2 ">
             <Form {...form}>
               <form
+                ref={formRef}
+                encType="multipart/form-data"
                 onSubmit={form.handleSubmit(handleSubmitMessage)}
                 className="space-y-6 flex w-full gap-2"
               >
@@ -153,20 +176,27 @@ import { SidebarDemo } from "@/components/SideBar";
                   control={form.control}
                   name="content"
                   render={({ field }) => (
-                    <FormItem className="flex-1">
+                    <FormItem className="flex-1 w-full max-w-xs">
                       <FormControl>
                         <Input
                           {...field}
-                          type="text"
-                          placeholder="Ask about your health..."
-                          className="w-full border-none text-m bg-gray-600 h-22 placeholder:text-gray-300 rounded-4xl"
+                          type="file"
+                          onChangeCapture={handleFileChange}
+                          placeholder="Type your message here."
+                          className="bg-gray-800 text-white"
                         />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                <div className="flex justify-center"></div>
+                <Button
+                  type="submit"
+                  disabled={isSending}
+                  className="bg-gray-800  rounded-2xl px-4 py-2 hover:bg-gray-700 transition-colors duration-300 ease-in-out"
+                >
+                  Generate
+                </Button>
               </form>
             </Form>
           </div>

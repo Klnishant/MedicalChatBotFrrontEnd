@@ -20,7 +20,7 @@ function Navbar() {
   const [dashboard, setDashboard] = useState(true);
 
   return (
-    <nav className="p-4 md:p-6 shadow-md bg-gray-900 text-white">
+    <nav className="p-4 md:p-6 shadow-md bg-gray-900 text-white w-auto">
       <div className="container mx-auto flex flex-row justify-between items-center">
         <section className="flex items-center flex-row gap-1">
           <Image

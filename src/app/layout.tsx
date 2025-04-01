@@ -10,8 +10,8 @@ import React from "react";
 import Navbar from "@/components/Navbar";
 
 export const metadata: Metadata = {
-  title: "True feedback",
-  description: "Real feedback from real people",
+  title: "MediAna",
+  description: "Your ai health assistance",
 };
 
 interface RootLayoutProps {
