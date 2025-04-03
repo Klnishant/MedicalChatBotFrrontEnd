@@ -3,8 +3,6 @@
 import { apiResponse } from "@/types/apiResponse";
 import axios, { AxiosError } from "axios";
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import { useToast } from "@/components/ui/use-toast";
 import { useForm } from "react-hook-form";
 import { messageSchema } from "@/schema/messageSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,35 +12,36 @@ import {
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Loader2 } from "lucide-react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import Link from "next/link";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { set } from "mongoose";
 import profile from "@/media/image/profile.png";
 import botImage from "@/media/image/chatbot.png";
-import { m } from "motion/react";
 import { useSession } from "next-auth/react";
 import { User } from "next-auth";
 import { useRouter } from "next/navigation";
-import { SidebarDemo } from "@/components/SideBar";
- export function ChatbotPage() {
-  const { data: session } = useSession();
+import thinkingBot from "@/media/image/thinking.png";
+export default function ChatbotPage() {
+  const { data: session, status } = useSession();
   const user: User = session?.user as User;
   const router = useRouter();
 
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isloading, setIsLoading] = useState(false);
+  const [username, setUsername] = useState(user?.username);
+
+  if (username) {
+    sessionStorage.setItem("username", username as string);
+  }
+
   const [chat, setChat] = useState([
     {
       sender: "bot",
-      text: `hello ${user?.username}! I am MediAna AI health assistant. How can I help you?`,
+      text: `Hello ${
+        username || sessionStorage.getItem("username")
+      }! I am MediAna AI health assistant. How can I help you?`,
     },
   ]);
   const [required, setRequired] = useState(false);
@@ -52,9 +51,6 @@ import { SidebarDemo } from "@/components/SideBar";
   });
 
   const messageContent = form.watch("content");
-  const handleMessageClick = (message: string) => {
-    form.setValue("content", message);
-  };
 
   const handleSubmitMessage = async (data: z.infer<typeof messageSchema>) => {
     if (!data.content) {
@@ -65,7 +61,7 @@ import { SidebarDemo } from "@/components/SideBar";
     setIsSending(true);
     const userMessage = { sender: "user", text: data.content };
     setChat((prevChat) => [...prevChat, userMessage]);
-
+    setIsLoading(true);
     try {
       const response = await axios.post("http://localhost:8000/get", {
         msg: data.content,
@@ -75,6 +71,7 @@ import { SidebarDemo } from "@/components/SideBar";
       const botMessage = { sender: "bot", text: response.data };
       setChat((prevChat) => [...prevChat, botMessage]);
       form.setValue("content", message);
+      setIsLoading(false);
 
       const updateHistory = await axios.post("/api/save-history", {
         question: data.content,
@@ -89,7 +86,7 @@ import { SidebarDemo } from "@/components/SideBar";
   };
 
   useEffect(() => {
-    if (!user || !session) {
+    if (status === "unauthenticated" && (!user || !session)) {
       router.replace("/");
     }
   }, [user, session]);
@@ -97,9 +94,9 @@ import { SidebarDemo } from "@/components/SideBar";
   return (
     <>
       <div className="flex flex-col no-scrollbar bg-gray-800 text-white justify-end  items-center w-full h-157.5">
-        <div className=" bg-gray-800 p-2 md:p-10 h-auto ">
-          <Card className=" p-4 mt-10 bg-gray-800 border-t border-gray-800 text-white mx-auto max-w-4xl w-full">
-            <CardContent className="space-y-4 overflow-y-auto max-h-88 no-scrollbar w-full">
+        <div className=" bg-gray-800 p-2 h-full ">
+          <Card className=" mt-2 bg-gray-800 border-t border-gray-800 text-white mx-auto max-w-4xl w-full max-h-120 h-full flex items-end">
+            <CardContent className="space-y-4 overflow-y-auto max-h-118 p-2 no-scrollbar w-full">
               {chat.map((message, index) => (
                 <div key={index} className="space-y-2">
                   <div className="flex">
@@ -129,7 +126,7 @@ import { SidebarDemo } from "@/components/SideBar";
                       {message.sender === "bot" ? (
                         <div></div>
                       ) : (
-                        <div>
+                        <div className="h-full flex items-end">
                           <img
                             src={`${profile.src}`}
                             height="40px"
@@ -141,13 +138,25 @@ import { SidebarDemo } from "@/components/SideBar";
                   </div>
                 </div>
               ))}
+              <div>
+                {isloading && (
+                  <div className="flex items-center w-[70px] h-auto">
+                    <img
+                      src={`${thinkingBot.src}`}
+                      height="60px"
+                      width="60px"
+                    />
+                    <div>Thinking......</div>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
           <div className="p-4 border-t border-gray-800 flex gap-2 mx-auto max-w-4xl w-full">
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(handleSubmitMessage)}
-                className="space-y-6 flex w-full gap-2"
+                className=" flex w-full gap-4"
               >
                 <FormField
                   control={form.control}
@@ -158,8 +167,9 @@ import { SidebarDemo } from "@/components/SideBar";
                         <Input
                           {...field}
                           type="text"
+                          disabled={isSending}
                           placeholder="Ask about your health..."
-                          className="w-full border-none text-m bg-gray-600 h-22 placeholder:text-gray-300 rounded-4xl"
+                          className="w-full border-none text-m bg-gray-600 h-15 px-4 md:h-22 placeholder:text-gray-300 rounded-4xl"
                         />
                       </FormControl>
                       <FormMessage />
@@ -172,14 +182,6 @@ import { SidebarDemo } from "@/components/SideBar";
           </div>
         </div>
       </div>
-    </>
-  );
-}
-
-export default function ChatPage() {
-  return (
-    <>
-      <SidebarDemo children={<ChatbotPage />} />
     </>
   );
 }

@@ -44,28 +44,27 @@ export async function POST(request: Request) {
       { _id: user._id },
       { $push: { history: history._id } },
       { new: true }
-    )
+    );
     if (history && userHistory) {
-        return Response.json(
-            {
-              success: true,
-              message: "history saved successfully",
-            },
-            {
-              status: 200,
-            }
-          );
-    }
-    else{
-        return Response.json(
-            {
-              success: false,
-              message: "history not saved",
-            },
-            {
-              status: 400,
-            }
-          );
+      return Response.json(
+        {
+          success: true,
+          message: "history saved successfully",
+        },
+        {
+          status: 200,
+        }
+      );
+    } else {
+      return Response.json(
+        {
+          success: false,
+          message: "history not saved",
+        },
+        {
+          status: 400,
+        }
+      );
     }
   } catch (error) {
     console.log(error);

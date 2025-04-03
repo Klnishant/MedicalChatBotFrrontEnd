@@ -3,8 +3,6 @@
 import { apiResponse } from "@/types/apiResponse";
 import axios, { AxiosError } from "axios";
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "next/navigation";
-import { useToast } from "@/components/ui/use-toast";
 import { useForm } from "react-hook-form";
 import { messageSchema } from "@/schema/messageSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,30 +12,23 @@ import {
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Loader2 } from "lucide-react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import Link from "next/link";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { set } from "mongoose";
 import profile from "@/media/image/profile.png";
 import botImage from "@/media/image/chatbot.png";
-import { m } from "motion/react";
 import { useSession } from "next-auth/react";
 import { User } from "next-auth";
 import { useRouter } from "next/navigation";
-import { SidebarDemo } from "@/components/SideBar";
-import { FileUpload } from "@/components/ui/file-upload";
-import Inputs from "@/components/Inputs";
-import ChatForm from "@/components/Chat";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-export function ChatbotPage() {
-  const { data: session } = useSession();
+import Image from "next/image";
+import thinkingBot from "@/media/image/thinking.png";
+import { useToast } from "@/components/ui/use-toast";
+
+export default function ChatbotPage() {
+  const { data: session, status } = useSession();
   const user: User = session?.user as User;
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
@@ -46,13 +37,29 @@ export function ChatbotPage() {
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isloading, setIsLoading] = useState(false);
+  const [username, setUsername] = useState(user?.username);
+
+  if (username) {
+    sessionStorage.setItem("username", username as string);
+  }
+
   const [chat, setChat] = useState([
     {
       sender: "bot",
-      text: `hello ${user?.username}! I am MediAna AI Image analyser health assistant. How can I help you?`,
+      text: `hello ${
+        username || sessionStorage.getItem("username")
+      }! I am MediAna AI Image analyser health assistant. How can I help you?`,
     },
   ]);
   const [required, setRequired] = useState(false);
+  const [preview, setPreview] = useState("");
+  const allowedTypes = [
+    "image/jpg, image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/heic",
+    "image/heif",
+  ];
 
   const form = useForm<z.infer<typeof messageSchema>>({
     resolver: zodResolver(messageSchema),
@@ -60,45 +67,64 @@ export function ChatbotPage() {
 
   const messageContent = form.watch("content");
 
+  const toast = useToast();
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log(event?.target?.files[0]);
-    setFile(event.target.files?.[0]);
-      console.log(file);
+    console.log(event?.target?.files![0]);
+    setFile(event.target.files![0]);
+    setPreview(URL.createObjectURL(event.target.files![0]));
+    console.log(preview);
+    console.log(file?.type);
   };
-   
+
   const handleSubmitMessage = async (data: z.infer<typeof messageSchema>) => {
     console.log(data);
     console.log(messageContent);
-    const input = document.querySelector('input[type="file"]'); // Select the file input
-    console.log(input?.files[0]);
+    const input = document.querySelector(
+      'input[type="file"]'
+    ) as HTMLInputElement; // Select the file input
+    console.log(input?.files![0]);
 
-    const file = input?.files[0]
-    
-    
+    const file = input?.files![0];
+
+    if (!allowedTypes.includes(file?.type)) {
+      toast.toast({
+        variant: "destructive",
+        title: "Invalid file type",
+        description: "Please select an image file.",
+      });
+      return;
+    }
+
     const formData = new FormData();
     formData.append("img", file);
 
     console.log(formData);
-    
 
     setRequired(false);
     setIsSending(true);
-    const userMessage = { sender: "user", formData };
-    
+    const userMessage = { sender: "user", text: preview };
+    setChat((prevChat) => [...prevChat, userMessage]);
+    setIsLoading(true);
     try {
-      const response = await axios.post("http://localhost:8000/diagnose", formData,{
-        headers: {
+      const response = await axios.post(
+        "http://localhost:8000/diagnose",
+        formData,
+        {
+          headers: {
             "Content-Type": "multipart/form-data",
           },
-      });
+        }
+      );
       setMessage("");
 
       const botMessage = { sender: "bot", text: response.data };
       setChat((prevChat) => [...prevChat, botMessage]);
       form.setValue("content", message);
+      setIsLoading(false);
 
       const updateHistory = await axios.post("/api/save-history", {
-        question: file + "analysis",
+        question: file?.name + " analysis",
         answer: response.data,
       });
       console.log(updateHistory);
@@ -109,17 +135,17 @@ export function ChatbotPage() {
     }
   };
 
-  //   useEffect(() => {
-  //     if (!user || !session) {
-  //       router.replace("/");
-  //     }
-  //   }, [user, session]);
+  useEffect(() => {
+    if ((!user || !session) && status === "unauthenticated") {
+      router.replace("/");
+    }
+  }, [user, session]);
 
   return (
     <>
       <div className="flex flex-col no-scrollbar bg-gray-800 text-white justify-end  items-center w-full h-157.5">
         <div className=" bg-gray-800 p-2 h-full ">
-          <Card className=" p-4 mt-2 bg-gray-800 border-t border-gray-800 text-white mx-auto max-w-4xl w-full max-h-120 h-full">
+          <Card className=" p-4 mt-2 bg-gray-800 border-t border-gray-800 text-white mx-auto max-w-4xl w-full max-h-120 h-full flex items-end">
             <CardContent className="space-y-4 overflow-y-auto max-h-118 p-2 no-scrollbar w-full">
               {chat.map((message, index) => (
                 <div key={index} className="space-y-2">
@@ -137,20 +163,28 @@ export function ChatbotPage() {
                         <div></div>
                       )}
                     </span>
-                    <span
-                      className={`p-3 rounded-full ${
-                        message.sender === "user"
-                          ? "bg-gray-600 ml-auto"
-                          : "bg-transparent"
-                      }`}
-                    >
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.text}</ReactMarkdown>
-                    </span>
+                    {message.sender === "bot" ? (
+                      <span className={`p-3 rounded-full ${"bg-transparent"}`}>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {message.text}
+                        </ReactMarkdown>
+                      </span>
+                    ) : (
+                      <div className=" ml-auto">
+                        <Image
+                          src={`${message.text}`}
+                          alt=""
+                          width={300}
+                          height={300}
+                          className="shrink-0 rounded-2xl"
+                        />
+                      </div>
+                    )}
                     <span className="ml-2 font-bold">
                       {message.sender === "bot" ? (
                         <div></div>
                       ) : (
-                        <div>
+                        <div className="h-full flex items-end">
                           <img
                             src={`${profile.src}`}
                             height="40px"
@@ -162,6 +196,18 @@ export function ChatbotPage() {
                   </div>
                 </div>
               ))}
+              <div>
+                {isloading && (
+                  <div className="flex items-center w-[70px] h-auto">
+                    <img
+                      src={`${thinkingBot.src}`}
+                      height="60px"
+                      width="60px"
+                    />
+                    <div>Thinking......</div>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
           <div className=" border-t border-gray-800 flex max-w-4xl w-full p-2 ">
@@ -170,7 +216,7 @@ export function ChatbotPage() {
                 ref={formRef}
                 encType="multipart/form-data"
                 onSubmit={form.handleSubmit(handleSubmitMessage)}
-                className="space-y-6 flex w-full gap-2"
+                className=" flex w-full gap-4"
               >
                 <FormField
                   control={form.control}
@@ -181,35 +227,29 @@ export function ChatbotPage() {
                         <Input
                           {...field}
                           type="file"
+                          disabled={isSending}
                           onChangeCapture={handleFileChange}
                           placeholder="Type your message here."
-                          className="bg-gray-800 text-white"
+                          className="w-full max-w-fit py-2 bg-transparent hover:bg-gray-600 hover:text-white transition-colors duration-300 ease-in-out"
                         />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                <Button
-                  type="submit"
-                  disabled={isSending}
-                  className="bg-gray-800  rounded-2xl px-4 py-2 hover:bg-gray-700 transition-colors duration-300 ease-in-out"
-                >
-                  Generate
-                </Button>
+                <div className="flex h-full items-center">
+                  <button className="p-[3px] relative" disabled={isSending}>
+                    <div className="absolute inset-0 bg-gradient-to-r from-[#bdc3c7] to-[#2c3e50] rounded-lg" />
+                    <div className="px-3 md:px-8 py-2  bg-black rounded-[6px]  relative group transition duration-200 text-white hover:bg-transparent">
+                      {isSending ? "Generating..." : "Generate"}
+                    </div>
+                  </button>
+                </div>
               </form>
             </Form>
           </div>
         </div>
       </div>
-    </>
-  );
-}
-
-export default function ChatPage() {
-  return (
-    <>
-      <SidebarDemo children={<ChatbotPage />} />
     </>
   );
 }
