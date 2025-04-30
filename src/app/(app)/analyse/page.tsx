@@ -39,22 +39,19 @@ export default function ChatbotPage() {
   const [isloading, setIsLoading] = useState(false);
   const [username, setUsername] = useState(user?.username);
 
-  if (username) {
-    sessionStorage.setItem("username", username as string);
-  }
-
   const [chat, setChat] = useState([
     {
       sender: "bot",
       text: `hello ${
-        username || sessionStorage.getItem("username")
+        username
       }! I am MediAna AI Image analyser health assistant. How can I help you?`,
     },
   ]);
   const [required, setRequired] = useState(false);
   const [preview, setPreview] = useState("");
   const allowedTypes = [
-    "image/jpg, image/jpeg",
+    "image/jpg",
+    "image/jpeg",
     "image/png",
     "image/webp",
     "image/heic",
@@ -86,6 +83,7 @@ export default function ChatbotPage() {
     console.log(input?.files![0]);
 
     const file = input?.files![0];
+    console.log(input?.files![0]?.type);
 
     if (!allowedTypes.includes(file?.type)) {
       toast.toast({
@@ -150,13 +148,14 @@ export default function ChatbotPage() {
               {chat.map((message, index) => (
                 <div key={index} className="space-y-2">
                   <div className="flex">
-                    <span className="mr-2 font-bold w-auto h-auto flex items-start">
+                    <span className="md:mr-2 font-bold w-auto h-auto flex items-start">
                       {message.sender === "bot" ? (
-                        <div className="w-[60px] h-auto">
+                        <div className="w-[40px] md:w-[60px] h-auto">
                           <img
                             src={`${botImage.src}`}
                             height="50px"
                             width="50px"
+                            className="shrink"
                           />
                         </div>
                       ) : (
@@ -164,7 +163,9 @@ export default function ChatbotPage() {
                       )}
                     </span>
                     {message.sender === "bot" ? (
-                      <span className={`p-3 rounded-full ${"bg-transparent"}`}>
+                      <span
+                        className={`md:p-3 rounded-full w-full ${"bg-transparent"}`}
+                      >
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
                           {message.text}
                         </ReactMarkdown>

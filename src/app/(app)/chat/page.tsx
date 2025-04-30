@@ -32,15 +32,11 @@ export default function ChatbotPage() {
   const [isloading, setIsLoading] = useState(false);
   const [username, setUsername] = useState(user?.username);
 
-  if (username) {
-    sessionStorage.setItem("username", username as string);
-  }
-
   const [chat, setChat] = useState([
     {
       sender: "bot",
       text: `Hello ${
-        username || sessionStorage.getItem("username")
+        user?.username
       }! I am MediAna AI health assistant. How can I help you?`,
     },
   ]);
@@ -100,9 +96,9 @@ export default function ChatbotPage() {
               {chat.map((message, index) => (
                 <div key={index} className="space-y-2">
                   <div className="flex">
-                    <span className="mr-2 font-bold w-auto h-auto flex items-start">
+                    <span className="md:mr-2 font-bold w-auto h-auto flex items-start">
                       {message.sender === "bot" ? (
-                        <div className="w-[60px] h-auto">
+                        <div className="w-[40px] md:w-[60px] h-auto">
                           <img
                             src={`${botImage.src}`}
                             height="50px"
@@ -114,9 +110,9 @@ export default function ChatbotPage() {
                       )}
                     </span>
                     <span
-                      className={`p-3 rounded-full ${
+                      className={`md:p-3 rounded-full ${
                         message.sender === "user"
-                          ? "bg-gray-600 ml-auto"
+                          ? "bg-gray-600 ml-auto p-3"
                           : "bg-transparent"
                       }`}
                     >
